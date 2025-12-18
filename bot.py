@@ -2,9 +2,8 @@ from pyrogram import Client, filters
 from pyrogram.types import Message
 from datetime import datetime
 import pytz
-import os
 
-app = Client("MiniGameBot", api_id=2040, api_hash="b18441a1ff607e10a989891a5462e627", bot_token=os.getenv('BOT_TOKEN'))
+app = Client("MiniGameBot", api_id=2040, api_hash="b18441a1ff607e10a989891a5462e627", bot_token=os.getenv("BOT__TOKEN"))
 
 daily_winners = set()
 last_reset_date = datetime.now().date()
@@ -53,10 +52,23 @@ def calculate_slot_payout(s1, s2, s3):
     return "Well Done!", 7
 
 
-# ───── ADMIN COMMANDS ─────
 async def is_admin(client, message):
-    member = await client.get_chat_member(message.chat.id, message.from_user.id)
-    return member.status.value in ('owner', 'administrator')
+    # Ignore non-group
+    if not message.chat:
+        return False
+        
+    # Anonymous admin (sent as group)
+    if message.sender_chat and message.sender_chat.id == message.chat.id:
+        return True
+    # Normal user admin
+    if message.from_user:
+        member = await client.get_chat_member(
+            message.chat.id,
+            message.from_user.id
+        )
+        return member.status.value in ("administrator", "owner")
+
+    return False
 
 @app.on_message(filters.command(["startdice", "stopdice", "startdarts", "stopdarts", "startslots", "stopslots", "startbasket", "stopbasket", "startfoot", "stopfoot"]) & filters.group)
 async def game_control(client, message: Message):
@@ -69,7 +81,7 @@ async def game_control(client, message: Message):
 
     if cmd == "/startdice":
         dice_active = True
-        await message.reply("Dice game is now ACTIVE! Roll 🎲")
+        await message.reply("Dice game is now ACTIVE! Send 🎲 emoji  to participate")
     elif cmd == "/stopdice":
         dice_active = False
         dice_attempts.clear()
@@ -77,7 +89,7 @@ async def game_control(client, message: Message):
 
     elif cmd == "/startdarts":
         darts_active = True
-        await message.reply("Darts game is now ACTIVE! Throw 🎯")
+        await message.reply("Darts game is now ACTIVE! Send 🎯 to emoji participate")
     elif cmd == "/stopdarts":
         darts_active = False
         darts_attempts.clear()
@@ -86,7 +98,7 @@ async def game_control(client, message: Message):
 
     elif cmd == "/startslots":
         slots_active = True
-        await message.reply("Slot Machine is now ACTIVE! Spin 🎰")
+        await message.reply("Slot Machine is now ACTIVE! Send 🎰 to emoji participate")
     elif cmd == "/stopslots":
         slots_active = False
         slots_attempts.clear()
@@ -94,7 +106,7 @@ async def game_control(client, message: Message):
 
     elif cmd == "/startbasket":
         basketball_active = True
-        await message.reply("Basketball game is now ACTIVE! Shoot 🏀")
+        await message.reply("Basketball game is now ACTIVE! Send 🏀 emoji to participate")
     elif cmd == "/stopbasket":
         basketball_active = False
         basketball_attempts.clear()
@@ -111,18 +123,23 @@ async def game_control(client, message: Message):
     
 @app.on_message(filters.group)
 async def detect_mini_game(client, message: Message):
-    if message.dice:                     
+    if message.sticker:
+        await message.reply("This is a sticker! Please send the emoji if you wish to participate")
+        return
+    
+    if message.dice:    
+        if await is_admin(client, message):
+            return
+
         emoji = message.dice.emoji
         value = message.dice.value          
         user = message.from_user.username or message.from_user.first_name
         user_id = message.from_user.id
         reset_daily_winners()
         
-        if await is_admin(client, message):
-            return
 
         if user_id in daily_winners:
-            await message.reply("🚫 You have already won a prize today! Come back tomorrow 😊", quote=True)
+            await message.reply("🚫 You have already won in another game today! Come back tomorrow 😊", quote=True)
             return
 
         if emoji.startswith("🎲") and not dice_active:
@@ -158,7 +175,7 @@ async def detect_mini_game(client, message: Message):
             if value == 6:
                 daily_winners.add(user_id)
                 await message.reply(f"@{user} WINS 20 pesos!! (perfect 6) 🎉\n\n"
-                                    f"Please send a screenshot of your P200 deposit today along with your username to claim your prize.\n\n")
+                                    f"Please send a screenshot of your P200 deposit today along with your Player ID to claim your prize.\n\n")
                 if current_attempt == 1:
                     await message.reply("You won on your first try — your second chance has been removed!", quote=True)
                 
@@ -176,7 +193,7 @@ async def detect_mini_game(client, message: Message):
 
             if score == 6:  
                 prize = "₱20"
-                msg = f"**Congrats!!** @{user} wins {prize}** Perfect shot!\n\nPlease send a screenshot of your ₱200 deposit today along with your username to claim your prize\n"
+                msg = f"**Congrats!!** @{user} wins {prize}** Perfect shot!\n\nPlease send a screenshot of your ₱200 deposit today along with your Player ID to claim your prize\n"
                 # If won on first try → block second attempt
                 daily_winners.add(user_id)
                 if attempts == 1:
@@ -185,7 +202,7 @@ async def detect_mini_game(client, message: Message):
 
             elif score > 1:  # Hit the board
                 prize = "₱5"
-                msg = f"Good hit! @{user} wins {prize}**\n\nPlease send a screenshot of your ₱200 deposit today along with your username to claim your prize\n"
+                msg = f"Good hit! @{user} wins {prize}**\n\nPlease send a screenshot of your ₱200 deposit today along with your Player ID to claim your prize\n"
                 daily_winners.add(user_id)
                 if attempts == 1:
                     darts_attempts[user_id] = 2
@@ -210,7 +227,7 @@ async def detect_mini_game(client, message: Message):
                 f"🎰 **Slot Machine** 🎰\n"
                 f"**{status}**\n"
                 f"Reward: ₱{payout}\n\n"
-                "Please send a screenshot of your P500 deposit today along with your username to claim your prize"
+                "Please send a screenshot of your P500 deposit today along with your Player ID to claim your prize"
             )
             await message.reply(msg, quote=True)
             daily_winners.add(user_id)
@@ -257,7 +274,7 @@ async def detect_mini_game(client, message: Message):
                         f"**🤴 BASKETBALL LEGEND!!! 🤴**\n\n"
                         f"@{user} scored on **BOTH shots!**\n"
                         f"**You win ₱10 + Basketball Star title**\n\n"
-                        "Please send a screenshot of your P200 deposit today along with your username to claim your prize.",
+                        "Please send a screenshot of your P200 deposit today along with your Player ID to claim your prize.",
                         quote=True
                     )
 
@@ -267,7 +284,7 @@ async def detect_mini_game(client, message: Message):
                     await message.reply(
                         f"Good game! @{user} made **1 out of 2 shots**\n"
                         f"**You win ₱10**\n\n"
-                        "Please send a screenshot of your P200 deposit today along with your username to claim your prize.",
+                        "Please send a screenshot of your P200 deposit today along with your Player ID to claim your prize.",
                         quote=True
                     )
 
@@ -293,7 +310,7 @@ async def detect_mini_game(client, message: Message):
                 daily_winners.add(user_id)
                 await message.reply("⚽GOAL⚽\n\n"
                                     f"@{user} WINS 10 pesos!! 🎉\n\n"
-                                    f"Please send a screenshot of your P200 deposit today along with your username to claim your prize.\n\n")
+                                    f"Please send a screenshot of your P200 deposit today along with your Player ID to claim your prize.\n\n")
                 if current_attempt == 1:
                     await message.reply("You won on your first try — your second chance has been removed!", quote=True)
                     football_attempts[user_id] = 2
