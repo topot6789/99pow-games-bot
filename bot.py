@@ -28,6 +28,35 @@ darts_won_first = set()
 result=''
 SLOT_SYMBOLS = ["🍒", "🍋", "7️⃣", "BAR"]
 
+GAME_EMOJI_MAP = {
+    "Dice": "🎲",
+    "Basketball": "🏀",
+    "Slots": "🎰",
+    "Football": "⚽",
+    "Darts":"🎯"
+}
+
+def get_active_game_emojis():
+    active = []
+    if safe_active:
+        active.append(GAME_EMOJI_MAP["Dice"])
+    if mine_active:
+        active.append(GAME_EMOJI_MAP["Basketball"])
+    if slots_active:
+        active.append(GAME_EMOJI_MAP["Slots"])
+    if bowl_active:
+        active.append(GAME_EMOJI_MAP["Darts"])
+    if football_active:
+        active.append(GAME_EMOJI_MAP["Football"])
+    return active
+
+def is_forwarded(message: Message) -> bool:
+    return bool(
+        message.forward_date
+        or message.forward_from
+        or message.forward_sender_name
+    )
+
 def reset_daily_winners():
     global daily_winners, last_reset_date
     now_ph = datetime.now(PH_TZ)
@@ -137,36 +166,89 @@ async def detect_mini_game(client, message: Message):
         user = message.from_user.username or message.from_user.first_name
         user_id = message.from_user.id
         reset_daily_winners()
-        
-
-        if user_id in daily_winners:
-            await message.reply("🚫 You have already won in another game today! Come back tomorrow 😊", quote=True)
-            return
 
         if emoji.startswith("🎲") and not dice_active:
-            await message.reply("🎲 Dice event is currently **not active**. ❌", quote=True)
+            active_games = get_active_game_emojis()
+            if active_games:
+                await message.reply(
+                    "🚫 **This game is not active.**\n\n"
+                    "🎮 Active games you can play:\n"
+                    + "\n".join(f"• {g}" for g in active_games)
+                    + "\n\n👉 Send the emoji of the game you want to play.",
+                    quote=True
+                )
+            else:
+                await message.reply("🎲 Dice event is currently **not active**. ❌", quote=True)
             return
 
         if emoji.startswith("🎯") and not darts_active:
-            await message.reply("🎯 Darts event is currently **not active**. ❌", quote=True)
+            active_games = get_active_game_emojis()
+            if active_games:
+                await message.reply(
+                    "🚫 **This game is not active.**\n\n"
+                    "🎮 Active games you can play:\n"
+                    + "\n".join(f"• {g}" for g in active_games)
+                    + "\n\n👉 Send the emoji of the game you want to play.",
+                    quote=True
+                )
+            else:
+                await message.reply("🎯 Darts event is currently **not active**. ❌", quote=True)
             return
 
         if emoji.startswith("🎰") and not slots_active:
-            await message.reply("🎰 Slot Machine event is currently **not active**. ❌", quote=True)
+            active_games = get_active_game_emojis()
+            if active_games:
+                await message.reply(
+                    "🚫 **This game is not active.**\n\n"
+                    "🎮 Active games you can play:\n"
+                    + "\n".join(f"• {g}" for g in active_games)
+                    + "\n\n👉 Send the emoji of the game you want to play.",
+                    quote=True
+                )
+            else:
+                await message.reply("🎰 Slot Machine event is currently **not active**. ❌", quote=True)
             return
 
         if emoji.startswith("🏀") and not basketball_active:
-            await message.reply("🏀 Basketball event is currently **not active**. ❌", quote=True)
+            active_games = get_active_game_emojis()
+            if active_games:
+                await message.reply(
+                    "🚫 **This game is not active.**\n\n"
+                    "🎮 Active games you can play:\n"
+                    + "\n".join(f"• {g}" for g in active_games)
+                    + "\n\n👉 Send the emoji of the game you want to play.",
+                    quote=True
+                )
+            else:
+                await message.reply("🏀 Basketball event is currently **not active**. ❌", quote=True)
             return
 
         if emoji.startswith("⚽") and not football_active:
-            await message.reply("⚽ Football event is currently **not active**. ❌", quote=True)
+            active_games = get_active_game_emojis()
+            if active_games:
+                await message.reply(
+                    "🚫 **This game is not active.**\n\n"
+                    "🎮 Active games you can play:\n"
+                    + "\n".join(f"• {g}" for g in active_games)
+                    + "\n\n👉 Send the emoji of the game you want to play.",
+                    quote=True
+                )
+            else:
+                await message.reply("⚽ Football event is currently **not active**. ❌", quote=True)
             return
 
         if emoji.startswith("🎲"):   # Dice
+            if is_forwarded(message):
+                await message.reply("🚫 Forwarding an emoji is not allowed!", quote=True)
+                return
+                
             attempts = dice_attempts.get(user_id, 0)
             if attempts >= 2:
                 await message.reply("You have no more dice chances this round! ❌", quote=True)
+                return
+                
+            if user_id in daily_winners:
+                await message.reply("🚫 You have already won in another game today! Come back tomorrow 😊", quote=True)
                 return
 
             current_attempt = attempts + 1
@@ -183,9 +265,17 @@ async def detect_mini_game(client, message: Message):
                 dice_attempts[user_id] = 2
 
         elif emoji.startswith("🎯"): # Darts
+            if is_forwarded(message):
+                await message.reply("🚫 Forwarding an emoji is not allowed!", quote=True)
+                return
+                
             attempts = darts_attempts.get(user_id, 0)
             if attempts >= 2:
                 await message.reply("You have no chances left for this round!", quote=True)
+                return
+            
+            if user_id in daily_winners:
+                await message.reply("🚫 You have already won in another game today! Come back tomorrow 😊", quote=True)
                 return
             attempts += 1
             darts_attempts[user_id] = attempts
@@ -215,8 +305,16 @@ async def detect_mini_game(client, message: Message):
             await message.reply(msg, quote=True)
 
         elif emoji.startswith("🎰"): # Slot Machine
+            if is_forwarded(message):
+                await message.reply("🚫 Forwarding an emoji is not allowed!", quote=True)
+                return
+                
             if user_id in slots_attempts:
                 await message.reply("You already used your 1 slot spin this round!", quote=True)
+                return
+            
+            if user_id in daily_winners:
+                await message.reply("🚫 You have already won in another game today! Come back tomorrow 😊", quote=True)
                 return
             slots_attempts.add(user_id)
             
@@ -234,6 +332,9 @@ async def detect_mini_game(client, message: Message):
             daily_winners.add(user_id)
 
         elif emoji.startswith("🏀"): # Basketball
+            if is_forwarded(message):
+                await message.reply("🚫 Forwarding an emoji is not allowed!", quote=True)
+                return
             attempts = basketball_attempts.get(user_id, 0)
             success = basketball_success.get(user_id, 0)
             value = message.dice.value
@@ -241,7 +342,10 @@ async def detect_mini_game(client, message: Message):
             if attempts >= 2:
                 await message.reply("You already used your 2 basketball chances this round! ❌", quote=True)
                 return
-
+            
+            if user_id in daily_winners:
+                await message.reply("🚫 You have already won in another game today! Come back tomorrow 😊", quote=True)
+                return
             attempts += 1
             basketball_attempts[user_id] = attempts
 
@@ -298,9 +402,16 @@ async def detect_mini_game(client, message: Message):
                     )
 
         elif emoji.startswith("⚽"): # Football
+            if is_forwarded(message):
+                await message.reply("🚫 Forwarding an emoji is not allowed!", quote=True)
+                return       
+            
             attempts = football_attempts.get(user_id, 0)
             if attempts >= 2:
                 await message.reply("You have no more football chances this round! ❌", quote=True)
+                return
+            if user_id in daily_winners:
+                await message.reply("🚫 You have already won in another game today! Come back tomorrow 😊", quote=True)
                 return
 
             current_attempt = attempts + 1
