@@ -38,13 +38,13 @@ GAME_EMOJI_MAP = {
 
 def get_active_game_emojis():
     active = []
-    if safe_active:
+    if dice_active:
         active.append(GAME_EMOJI_MAP["Dice"])
-    if mine_active:
+    if basketball_active:
         active.append(GAME_EMOJI_MAP["Basketball"])
     if slots_active:
         active.append(GAME_EMOJI_MAP["Slots"])
-    if bowl_active:
+    if darts_active:
         active.append(GAME_EMOJI_MAP["Darts"])
     if football_active:
         active.append(GAME_EMOJI_MAP["Football"])
