@@ -294,8 +294,8 @@ async def detect_mini_game(client, message: Message):
 
             if score == 6:  
                 prize = "₱20"
-                msg = f"**Congrats!!** @{user} wins {prize}** Perfect shot!\n\nPlease send a screenshot of your ₱200 deposit made today along with your Player ID to claim your prize\n\n"
-                       "**NOTE:** THE DEPOSIT MUST BE MADE BEFORE YOU HAVE PLAYED THE GAME, NOT AFTER THE GAME IS PLAYED"
+                msg = (f"**Congrats!!** @{user} wins {prize}** Perfect shot!\n\nPlease send a screenshot of your ₱200 deposit made today along with your Player ID to claim your prize\n\n"
+                       "**NOTE:** THE DEPOSIT MUST BE MADE BEFORE YOU HAVE PLAYED THE GAME, NOT AFTER THE GAME IS PLAYED")
                 # If won on first try → block second attempt
                 daily_winners.add(user_id)
                 if attempts == 1:
@@ -304,8 +304,8 @@ async def detect_mini_game(client, message: Message):
 
             elif score > 1:  # Hit the board
                 prize = "₱5"
-                msg = f"Good hit! @{user} wins {prize}**\n\nPlease send a screenshot of your ₱200 deposit made today along with your Player ID to claim your prize\n\n"
-                       "**NOTE:** THE DEPOSIT MUST BE MADE BEFORE YOU HAVE PLAYED THE GAME, NOT AFTER THE GAME IS PLAYED"
+                msg = (f"Good hit! @{user} wins {prize}**\n\nPlease send a screenshot of your ₱200 deposit made today along with your Player ID to claim your prize\n\n"
+                       "**NOTE:** THE DEPOSIT MUST BE MADE BEFORE YOU HAVE PLAYED THE GAME, NOT AFTER THE GAME IS PLAYED")
                 daily_winners.add(user_id)
                 if attempts == 1:
                     darts_attempts[user_id] = 2
