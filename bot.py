@@ -103,6 +103,8 @@ async def is_admin(client, message):
 @app.on_message(filters.command(["startdice", "stopdice", "startdarts", "stopdarts", "startslots", "stopslots", "startbasket", "stopbasket", "startfoot", "stopfoot"]) & filters.group)
 async def game_control(client, message: Message):
     if not await is_admin(client, message):
+        await message.delete()
+        await client.send_message(message.chat.id,"🎮Please send the proper emoji of the game that is currently active🎮")
         return
 
     cmd = message.text.lower()
