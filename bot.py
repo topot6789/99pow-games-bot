@@ -1,15 +1,34 @@
 from pyrogram import Client, filters
 from pyrogram.types import Message
+from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, ChatPermissions
 from datetime import datetime
 import pytz
 import os
+import logging
+import ayncio
 
 app = Client("MiniGameBot", api_id=2040, api_hash="b18441a1ff607e10a989891a5462e627", bot_token=os.getenv("BOT_TOKEN"))
 
+logging.basicConfig(level=logging.INFO)
 daily_winners = set()
 last_reset_date = datetime.now().date()
 PH_TZ = pytz.timezone("Asia/Manila")
 
+BLOCKED_KEYWORDS = [
+    "customer service",
+    "customerservice",
+    "support",
+    "cs team",
+    "agent",
+    "admin",
+    "official support",
+    "help desk",
+    "helpdesk",
+    "99bon",
+    "99pow"
+]
+
+accepted_users = set()
 
 dice_active = False
 darts_active = False
@@ -35,6 +54,22 @@ GAME_EMOJI_MAP = {
     "Football": "⚽",
     "Darts":"🎯"
 }
+
+def looks_like_impersonation(user):
+    name_parts = [
+        user.first_name or "",
+        user.last_name or "",
+    ]
+
+    full_name = " ".join(name_parts).lower()
+
+    return any(keyword in full_name for keyword in BLOCKED_KEYWORDS)
+
+async def set_group_permissions(client, chat_id, permissions):
+    try:
+        await client.set_chat_permissions(chat_id, permissions)
+    except Exception as e:
+        print(f"[ERROR] Failed to set permissions: {e}")
 
 def get_active_game_emojis():
     active = []
@@ -114,6 +149,7 @@ async def game_control(client, message: Message):
     if cmd == "/startdice":
         dice_active = True
         await message.reply("Dice game is now ACTIVE! Send 🎲 emoji  to participate")
+        await app.send_dice(chat_id=message.chat.id,emoji="🎲")
     elif cmd == "/stopdice":
         dice_active = False
         dice_attempts.clear()
@@ -122,6 +158,7 @@ async def game_control(client, message: Message):
     elif cmd == "/startdarts":
         darts_active = True
         await message.reply("Darts game is now ACTIVE! Send 🎯 to emoji participate")
+        await app.send_dice(chat_id=message.chat.id,emoji="🎯")
     elif cmd == "/stopdarts":
         darts_active = False
         darts_attempts.clear()
@@ -131,6 +168,7 @@ async def game_control(client, message: Message):
     elif cmd == "/startslots":
         slots_active = True
         await message.reply("Slot Machine is now ACTIVE! Send 🎰 to emoji participate")
+        await app.send_dice(chat_id=message.chat.id,emoji="🎰")
     elif cmd == "/stopslots":
         slots_active = False
         slots_attempts.clear()
@@ -139,6 +177,7 @@ async def game_control(client, message: Message):
     elif cmd == "/startbasket":
         basketball_active = True
         await message.reply("Basketball game is now ACTIVE! Send 🏀 emoji to participate")
+        await app.send_dice(chat_id=message.chat.id,emoji="🏀")
     elif cmd == "/stopbasket":
         basketball_active = False
         basketball_attempts.clear()
@@ -445,6 +484,92 @@ async def detect_mini_game(client, message: Message):
                     await message.reply("You won on your first try — your second chance has been removed!", quote=True)
                     football_attempts[user_id] = 2
             else:
-                await message.reply("Better Luck Next time!", quote=True)             
+                await message.reply("Better Luck Next time!", quote=True) 
+
+@app.on_message(filters.new_chat_members, group=10)
+async def greet_new_member(client, message):
+    # Cache fix
+    async for _ in client.get_chat_members(message.chat.id, limit=1):
+        break
+
+    for user in message.new_chat_members:
+        if user.is_bot:
+            continue
+
+        chat_id = message.chat.id
+        user_id = user.id
+
+        if looks_like_impersonation(user):
+            await client.ban_chat_member(chat_id, user_id)
+            await client.unban_chat_member(chat_id, user_id)
+            return
+
+        # Restrict user
+        await client.restrict_chat_member(
+            chat_id, user_id,
+            ChatPermissions(can_send_messages=False)
+        )
+ 
+        keyboard = [[InlineKeyboardButton("✅ Accept Rules", callback_data=f"accept_{user_id}")]]
+        await client.send_message(
+            chat_id,
+            f"""
+        👋 Welcome @{user.username}!
+
+‼️PAALALA‼️
+
+1️⃣Kung may problema sa inyong mga account ay   makipag ugnayan lamang sa aming; <a href="https://chat.wellytalk.com/MDE5YTM4NGQtNGNkYi03MWVlLWJjOGEtZWI4ZjQ4OTRiNTExfDM0ZjY3OTEzYjM4NWYwMGM0NDNjNzVlZjA1NGYzODNhYmQ3ZmY4NDE2ZDQ0NmFjOTgxMzAxM2Y1MGM5YWVlNmM=">Customer Service</a>.  
+
+
+👉Kung may mensahi matanggap at nagsasabing sila ay:  “CUSTOMER SERVICE ”, “SUPPORT ”, “AGENT”, O “ADMIN" ay  Wag agad maniwala:
+
+                                   🙅🏻‍♂️TANDAAN👎
+
+👉HINDI kami kailanman  mag mensahi o tumawag  para mag-alok ng deposit, withdrawal, bonus, promo code, at  payment link.
+
+2️⃣ PROTEKTAHAN ANG SARILI AT ANG INYONG PONDO 
+
+Huwag magtiwala sa mga private message, link, o nino man na Manghinge ng  bayad mula sa kahit sino.
+
+Maging  responsable na  protektahan ang iyong account at pondo sa lahat ng oras.
+
+3️⃣ PROTEKTAHAN ANG INYONG ACCOUNT 
+Huwag kailanman ibahagi ang iyong password, OTP, o detalye ng pagbabayad sa kahit sino.
+
+4️⃣LAYUNIN NG GROUP
+Ang group na ito ay para lamang sa mga laro, events, at announcements.
+Para sa mga may problema sa account, makipag-ugnayan lamang sa <a href="https://chat.wellytalk.com/MDE5YTM4NGQtNGNkYi03MWVlLWJjOGEtZWI4ZjQ4OTRiNTExfDM0ZjY3OTEzYjM4NWYwMGM0NDNjNzVlZjA1NGYzODNhYmQ3ZmY4NDE2ZDQ0NmFjOTgxMzAxM2Y1MGM5YWVlNmM=">Customer Service</a> gamit ang opisyal  link.
+
+5️⃣ IGALANG ANG KOMUNIDAD 
+Walang spam, pang-aabuso, o istorbo sa grupo.
+
+👉 I-click ang Accept Rules para magpatuloy
+""",
+            reply_markup=InlineKeyboardMarkup(keyboard)
+        )
+
+
+@app.on_callback_query()
+async def handle_callback(client, callback_query):
+    data = callback_query.data
+    user_id = callback_query.from_user.id
+
+    if not data.endswith(str(user_id)):
+        await callback_query.answer("❌ This is not for you!", show_alert=True)
+        return
+
+    chat_id = callback_query.message.chat.id
+    chat = await client.get_chat(chat_id)
+    group_perms = chat.permissions
+
+    await client.restrict_chat_member(chat_id, user_id, permissions=group_perms)
+
+    await callback_query.message.edit_text(
+        f"✅ @{callback_query.from_user.username} accepted the rules. Welcome!"
+    )
+
+    accepted_users.add(user_id)
+    await callback_query.answer("You are now allowed to chat!", show_alert=True)
+
 
 app.run()
