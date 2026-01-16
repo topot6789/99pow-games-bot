@@ -18,7 +18,7 @@ BLOCKED_KEYWORDS = [
     "customer service",
     "customerservice",
     "support",
-    "cs",
+    " cs ",
     "agent",
     "admin",
     "official",
@@ -188,6 +188,7 @@ async def game_control(client, message: Message):
     elif cmd == "/sfoot":
         football_active = True
         await message.reply("Football game is now ACTIVE! Kick ⚽")
+        await app.send_dice(chat_id=message.chat.id,emoji="⚽")
     elif cmd == "/stfoot":
         football_active = False
         football_attempts.clear()
