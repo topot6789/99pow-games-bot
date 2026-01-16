@@ -234,6 +234,7 @@ async def game_control(message: Message):
         football_active = False
         football_attempts.clear()
         await message.answer("Football game stopped.❌")
+    return
 
 @dp.message()
 async def block_private_messages(message: Message):
@@ -247,11 +248,10 @@ async def block_private_messages(message: Message):
         "if you wanna claim your prize, **ONLY** in the 99POW-OFFICIAL Group."
     )
 
-    
+
 @dp.message()
 async def detect_mini_game(message: Message):
-    if message.sticker:
-        await message.answer("This is a sticker! Please send the emoji if you wish to participate")
+        if not message.dice:
         return
     
     if message.dice:    
