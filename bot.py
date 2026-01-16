@@ -252,11 +252,11 @@ async def block_private_messages(message: Message):
 @dp.message()
 async def detect_mini_game(message: Message):
     if message.text and message.text.startswith("/"):
-    return
+        return
 
     if message.content_type != "dice":
         return
-    
+
 
     emoji = message.dice.emoji
     value = message.dice.value          
