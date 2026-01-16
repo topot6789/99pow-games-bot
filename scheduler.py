@@ -13,8 +13,8 @@ BOT_TOKEN = os.getenv("BOT_TOKEN")
 TARGET_CHAT_ID = -1003539357826
 PH_TZ = pytz.timezone("Asia/Manila")
 
-LOCK_TIME = dtime(hour=0, minute=30)
-UNLOCK_TIME = dtime(hour=0, minute=31)
+LOCK_TIME = dtime(hour=22, minute=59)
+UNLOCK_TIME = dtime(hour=23, minute=00)
 
 LOCKED_PERMISSIONS = ChatPermissions(
     can_send_messages=False
