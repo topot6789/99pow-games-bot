@@ -251,7 +251,7 @@ async def block_private_messages(message: Message):
 
 @dp.message()
 async def detect_mini_game(message: Message):
-        if not message.dice:
+    if not message.dice:
         return
     
     if message.dice:    
