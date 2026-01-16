@@ -5,7 +5,7 @@ from datetime import datetime
 import pytz
 import os
 import logging
-import ayncio
+import asyncio
 
 app = Client("MiniGameBot", api_id=2040, api_hash="b18441a1ff607e10a989891a5462e627", bot_token=os.getenv("BOT_TOKEN"))
 
