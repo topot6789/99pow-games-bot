@@ -1,13 +1,20 @@
-from pyrogram import Client, filters
-from pyrogram.types import Message
-from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, ChatPermissions
+import asyncio
+import logging
+import os
 from datetime import datetime
 import pytz
-import os
-import logging
-import asyncio
+from aiogram import Bot, Dispatcher
+from aiogram.types import (
+    Message,
+    CallbackQuery,
+    InlineKeyboardMarkup,
+    InlineKeyboardButton,
+    ChatPermissions,
+)
 
-app = Client("MiniGameBot", api_id=2040, api_hash="b18441a1ff607e10a989891a5462e627", bot_token=os.getenv("BOT_TOKEN"))
+
+bot = Bot(os.getenv("BOT_TOKEN"), parse_mode="HTML")
+dp = Dispatcher()
 
 logging.basicConfig(level=logging.INFO)
 daily_winners = set()
@@ -66,9 +73,9 @@ def looks_like_impersonation(user):
 
     return any(keyword in full_name for keyword in BLOCKED_KEYWORDS)
 
-async def set_group_permissions(client, chat_id, permissions):
+async def set_group_permissions(chat_id, permissions):
     try:
-        await client.set_chat_permissions(chat_id, permissions)
+        await bot.set_chat_permissions(chat_id, permissions)
     except Exception as e:
         print(f"[ERROR] Failed to set permissions: {e}")
 
@@ -87,11 +94,7 @@ def get_active_game_emojis():
     return active
 
 def is_forwarded(message: Message) -> bool:
-    return bool(
-        message.forward_date
-        or message.forward_from
-        or message.forward_sender_name
-    )
+    return bool(message.forward_origin)
 
 def reset_daily_winners():
     global daily_winners, last_reset_date
@@ -118,99 +121,137 @@ def calculate_slot_payout(s1, s2, s3):
     return "Well Done!", 7
 
 
-async def is_admin(client, message):
-    # Ignore non-group
-    if not message.chat:
+async def is_admin(message: Message):
+    if message.chat.type not in ("group", "supergroup"):
         return False
-        
-    # Anonymous admin (sent as group)
-    if message.sender_chat and message.sender_chat.id == message.chat.id:
-        return True
-    # Normal user admin
-    if message.from_user:
-        member = await client.get_chat_member(
-            message.chat.id,
-            message.from_user.id
-        )
-        return member.status.value in ("administrator", "owner")
 
-    return False
+    member = await bot.get_chat_member(
+        message.chat.id,
+        message.from_user.id
+    )
+    return member.status in ("administrator", "creator")
 
-@app.on_message(filters.command(["sdice", "stdice", "sdarts", "stdarts", "sslots", "stslots", "sbasket", "stbasket", "sfoot", "stfoot"]) & filters.group)
-async def game_control(client, message: Message):
-    if not await is_admin(client, message):
-        await message.delete()
-        await client.send_message(message.chat.id,"🎮Please send the proper emoji of the game that is currently active🎮")
+def is_command(message, names):
+    if not message.text:
+        return False
+
+    text = message.text.strip()
+    if not text.startswith("/"):
+        return False
+
+    cmd = text.split()[0][1:]      
+    cmd = cmd.split("@")[0].lower()  
+    return cmd in names
+
+
+@dp.message()
+async def game_control(message: Message):
+    # === filters.group ===
+    if message.chat.type not in ("group", "supergroup"):
         return
 
-    cmd = message.text.lower()
+    COMMANDS = {
+        "sdice", "stdice",
+        "sdarts", "stdarts",
+        "sslots", "stslots",
+        "sbasket", "stbasket",
+        "sfoot", "stfoot",
+    }
 
-    global dice_active, darts_active, slots_active, basketball_active, football_active, bowling_active
+    # === filters.command([...]) ===
+    if not is_command(message, COMMANDS):
+        return
+
+    if not await is_admin(message):
+        try:
+            await message.delete()
+        except Exception:
+            pass
+
+        await bot.send_message(
+            message.chat.id,
+            "🎮Please send the proper emoji of the game that is currently active🎮"
+        )
+        return
+
+    cmd = message.text.split()[0].lower()
+
+    global dice_active, darts_active, slots_active
+    global basketball_active, football_active
 
     if cmd == "/sdice":
         dice_active = True
-        await message.reply("Dice game is now ACTIVE! Send 🎲 emoji  to participate")
-        await app.send_dice(chat_id=message.chat.id,emoji="🎲")
+        await message.answer("Dice game is now ACTIVE! Send 🎲 emoji to participate")
+        await bot.send_dice(message.chat.id, emoji="🎲")
+
     elif cmd == "/stdice":
         dice_active = False
         dice_attempts.clear()
-        await message.reply("Dice game stopped.❌")
+        await message.answer("Dice game stopped.❌")
 
     elif cmd == "/sdarts":
         darts_active = True
-        await message.reply("Darts game is now ACTIVE! Send 🎯 to emoji participate")
-        await app.send_dice(chat_id=message.chat.id,emoji="🎯")
+        await message.answer("Darts game is now ACTIVE! Send 🎯 emoji to participate")
+        await bot.send_dice(message.chat.id, emoji="🎯")
+
     elif cmd == "/stdarts":
         darts_active = False
         darts_attempts.clear()
         darts_won_first.clear()
-        await message.reply("Darts game stopped.❌")
+        await message.answer("Darts game stopped.❌")
 
     elif cmd == "/sslots":
         slots_active = True
-        await message.reply("Slot Machine is now ACTIVE! Send 🎰 to emoji participate")
-        await app.send_dice(chat_id=message.chat.id,emoji="🎰")
+        await message.answer("Slot Machine is now ACTIVE! Send 🎰 emoji to participate")
+        await bot.send_dice(message.chat.id, emoji="🎰")
+
     elif cmd == "/stslots":
         slots_active = False
         slots_attempts.clear()
-        await message.reply("Slot Machine stopped.❌")
+        await message.answer("Slot Machine stopped.❌")
 
     elif cmd == "/sbasket":
         basketball_active = True
-        await message.reply("Basketball game is now ACTIVE! Send 🏀 emoji to participate")
-        await app.send_dice(chat_id=message.chat.id,emoji="🏀")
+        await message.answer("Basketball game is now ACTIVE! Send 🏀 emoji to participate")
+        await bot.send_dice(message.chat.id, emoji="🏀")
+
     elif cmd == "/stbasket":
         basketball_active = False
         basketball_attempts.clear()
         basketball_success.clear()
-        await message.reply("Basketball game stopped.❌")
+        await message.answer("Basketball game stopped.❌")
 
     elif cmd == "/sfoot":
         football_active = True
-        await message.reply("Football game is now ACTIVE! Kick ⚽")
-        await app.send_dice(chat_id=message.chat.id,emoji="⚽")
+        await message.answer("Football game is now ACTIVE! Kick ⚽")
+        await bot.send_dice(message.chat.id, emoji="⚽")
+
     elif cmd == "/stfoot":
         football_active = False
         football_attempts.clear()
-        await message.reply("Football game stopped.❌")
+        await message.answer("Football game stopped.❌")
 
-@app.on_message(filters.private)
-async def block_private_messages(client, message):
+@dp.message()
+async def block_private_messages(message: Message):
+    if message.chat.type != "private":
+        return
+
     await message.forward(7855698973)
-    await message.reply(
+    await message.answer(
         "This bot is actually a dead-end for private messages.\n\n"
-        "Please submit the screenshot of your deposit along with your player ID if you wanna claim your prize, **ONLY** in the 99POW-OFFICIAL Group."
+        "Please submit the screenshot of your deposit along with your player ID "
+        "if you wanna claim your prize, **ONLY** in the 99POW-OFFICIAL Group."
     )
-    return
+
     
-@app.on_message(filters.group)
-async def detect_mini_game(client, message: Message):
+@dp.message()
+async def detect_mini_game(message: Message):
     if message.sticker:
-        await message.reply("This is a sticker! Please send the emoji if you wish to participate")
+        await message.answer("This is a sticker! Please send the emoji if you wish to participate")
         return
     
     if message.dice:    
-        if await is_admin(client, message):
+        if await is_admin(message):
             return
 
         emoji = message.dice.emoji
@@ -222,113 +263,108 @@ async def detect_mini_game(client, message: Message):
         if emoji.startswith("🎲") and not dice_active:
             active_games = get_active_game_emojis()
             if active_games:
-                await message.reply(
+                await message.answer(
                     "🚫 **This game is not active.**\n\n"
                     "🎮 Active games you can play:\n"
                     + "\n".join(f"• {g}" for g in active_games)
-                    + "\n\n👉 Send the emoji of the game you want to play.",
-                    quote=True
+                    + "\n\n👉 Send the emoji of the game you want to play."
                 )
             else:
-                await message.reply("🎲 Dice event is currently **not active**. ❌", quote=True)
+                await message.answer("🎲 Dice event is currently **not active**. ❌")
             return
 
         if emoji.startswith("🎯") and not darts_active:
             active_games = get_active_game_emojis()
             if active_games:
-                await message.reply(
+                await message.answer(
                     "🚫 **This game is not active.**\n\n"
                     "🎮 Active games you can play:\n"
                     + "\n".join(f"• {g}" for g in active_games)
-                    + "\n\n👉 Send the emoji of the game you want to play.",
-                    quote=True
+                    + "\n\n👉 Send the emoji of the game you want to play."
                 )
             else:
-                await message.reply("🎯 Darts event is currently **not active**. ❌", quote=True)
+                await message.answer("🎯 Darts event is currently **not active**. ❌")
             return
 
         if emoji.startswith("🎰") and not slots_active:
             active_games = get_active_game_emojis()
             if active_games:
-                await message.reply(
+                await message.answer(
                     "🚫 **This game is not active.**\n\n"
                     "🎮 Active games you can play:\n"
                     + "\n".join(f"• {g}" for g in active_games)
-                    + "\n\n👉 Send the emoji of the game you want to play.",
-                    quote=True
+                    + "\n\n👉 Send the emoji of the game you want to play."
                 )
             else:
-                await message.reply("🎰 Slot Machine event is currently **not active**. ❌", quote=True)
+                await message.answer("🎰 Slot Machine event is currently **not active**. ❌")
             return
 
         if emoji.startswith("🏀") and not basketball_active:
             active_games = get_active_game_emojis()
             if active_games:
-                await message.reply(
+                await message.answer(
                     "🚫 **This game is not active.**\n\n"
                     "🎮 Active games you can play:\n"
                     + "\n".join(f"• {g}" for g in active_games)
-                    + "\n\n👉 Send the emoji of the game you want to play.",
-                    quote=True
+                    + "\n\n👉 Send the emoji of the game you want to play."
                 )
             else:
-                await message.reply("🏀 Basketball event is currently **not active**. ❌", quote=True)
+                await message.answer("🏀 Basketball event is currently **not active**. ❌")
             return
 
         if emoji.startswith("⚽") and not football_active:
             active_games = get_active_game_emojis()
             if active_games:
-                await message.reply(
+                await message.answer(
                     "🚫 **This game is not active.**\n\n"
                     "🎮 Active games you can play:\n"
                     + "\n".join(f"• {g}" for g in active_games)
-                    + "\n\n👉 Send the emoji of the game you want to play.",
-                    quote=True
+                    + "\n\n👉 Send the emoji of the game you want to play."
                 )
             else:
-                await message.reply("⚽ Football event is currently **not active**. ❌", quote=True)
+                await message.answer("⚽ Football event is currently **not active**. ❌")
             return
 
         if emoji.startswith("🎲"):   # Dice
             if is_forwarded(message):
-                await message.reply("🚫 Forwarding an emoji is not allowed!", quote=True)
+                await message.answer("🚫 Forwarding an emoji is not allowed!")
                 return
                 
             attempts = dice_attempts.get(user_id, 0)
             if attempts >= 2:
-                await message.reply("You have no more dice chances this round! ❌", quote=True)
+                await message.answer("You have no more dice chances this round! ❌")
                 return
                 
             if user_id in daily_winners:
-                await message.reply("🚫 You have already won in another game today! Come back tomorrow 😊", quote=True)
+                await message.answer("🚫 You have already won in another game today! Come back tomorrow 😊")
                 return
 
             current_attempt = attempts + 1
             dice_attempts[user_id] = current_attempt
 
-            await message.reply(f"@{user} rolled {value} 🎲  (chance {attempts + 1}/2)")
+            await message.answer(f"@{user} rolled {value} 🎲  (chance {attempts + 1}/2)")
             if value == 6:
                 daily_winners.add(user_id)
-                await message.reply(f"@{user} WINS 20 pesos!! (perfect 6) 🎉\n\n"
+                await message.answer(f"@{user} WINS 20 pesos!! (perfect 6) 🎉\n\n"
                                     f"Please send a screenshot of your P200 deposit made today along with your Player ID to claim your prize.\n\n"
-                                     "**NOTE:** The deposit must be made before playing the game. Deposits made after gameplay will not be accepted.")
+                                     "<b>NOTE</b> The deposit must be made before playing the game. Deposits made after gameplay will not be accepted.")
                 if current_attempt == 1:
-                    await message.reply("You won on your first try — your second chance has been removed!", quote=True)
+                    await message.answer("You won on your first try — your second chance has been removed!")
                 
                 dice_attempts[user_id] = 2
 
         elif emoji.startswith("🎯"): # Darts
             if is_forwarded(message):
-                await message.reply("🚫 Forwarding an emoji is not allowed!", quote=True)
+                await message.answer("🚫 Forwarding an emoji is not allowed!")
                 return
                 
             attempts = darts_attempts.get(user_id, 0)
             if attempts >= 2:
-                await message.reply("You have no chances left for this round!", quote=True)
+                await message.answer("You have no chances left for this round!")
                 return
             
             if user_id in daily_winners:
-                await message.reply("🚫 You have already won in another game today! Come back tomorrow 😊", quote=True)
+                await message.answer("🚫 You have already won in another game today! Come back tomorrow 😊")
                 return
             attempts += 1
             darts_attempts[user_id] = attempts
@@ -338,7 +374,7 @@ async def detect_mini_game(client, message: Message):
             if score == 6:  
                 prize = "₱20"
                 msg = (f"**Congrats!!** @{user} wins {prize}** Perfect shot!\n\nPlease send a screenshot of your ₱200 deposit made today along with your Player ID to claim your prize\n\n"
-                       "**NOTE:** The deposit must be made before playing the game. Deposits made after gameplay will not be accepted.")
+                       "<b>NOTE</b> The deposit must be made before playing the game. Deposits made after gameplay will not be accepted.")
                 # If won on first try → block second attempt
                 daily_winners.add(user_id)
                 if attempts == 1:
@@ -348,7 +384,7 @@ async def detect_mini_game(client, message: Message):
             elif score > 1:  # Hit the board
                 prize = "₱5"
                 msg = (f"Good hit! @{user} wins {prize}**\n\nPlease send a screenshot of your ₱200 deposit made today along with your Player ID to claim your prize\n\n"
-                       "**NOTE:** The deposit must be made before playing the game. Deposits made after gameplay will not be accepted.")
+                       "<b>NOTE</b> The deposit must be made before playing the game. Deposits made after gameplay will not be accepted.")
                 daily_winners.add(user_id)
                 if attempts == 1:
                     darts_attempts[user_id] = 2
@@ -357,19 +393,19 @@ async def detect_mini_game(client, message: Message):
             else:  # score == 0 → missed
                 msg = f"Ouch! {user} missed the board completely!\nBetter luck on your next throw!"
 
-            await message.reply(msg, quote=True)
+            await message.answer(msg)
 
         elif emoji.startswith("🎰"): # Slot Machine
             if is_forwarded(message):
-                await message.reply("🚫 Forwarding an emoji is not allowed!", quote=True)
+                await message.answer("🚫 Forwarding an emoji is not allowed!")
                 return
                 
             if user_id in slots_attempts:
-                await message.reply("You already used your 1 slot spin this round!", quote=True)
+                await message.answer("You already used your 1 slot spin this round!")
                 return
             
             if user_id in daily_winners:
-                await message.reply("🚫 You have already won in another game today! Come back tomorrow 😊", quote=True)
+                await message.answer("🚫 You have already won in another game today! Come back tomorrow 😊")
                 return
             slots_attempts.add(user_id)
             
@@ -382,25 +418,25 @@ async def detect_mini_game(client, message: Message):
                 f"**{status}**\n"
                 f"Reward: ₱{payout}\n\n"
                 "Please send a screenshot of your P500 deposit made today along with your Player ID to claim your prize\n\n"
-                "**NOTE:** The deposit must be made before playing the game. Deposits made after gameplay will not be accepted."
+                "<b>NOTE</b> The deposit must be made before playing the game. Deposits made after gameplay will not be accepted."
             )
-            await message.reply(msg, quote=True)
+            await message.answer(msg)
             daily_winners.add(user_id)
 
         elif emoji.startswith("🏀"): # Basketball
             if is_forwarded(message):
-                await message.reply("🚫 Forwarding an emoji is not allowed!", quote=True)
+                await message.answer("🚫 Forwarding an emoji is not allowed!")
                 return
             attempts = basketball_attempts.get(user_id, 0)
             success = basketball_success.get(user_id, 0)
             value = message.dice.value
 
             if attempts >= 2:
-                await message.reply("You already used your 2 basketball chances this round! ❌", quote=True)
+                await message.answer("You already used your 2 basketball chances this round! ❌")
                 return
             
             if user_id in daily_winners:
-                await message.reply("🚫 You have already won in another game today! Come back tomorrow 😊", quote=True)
+                await message.answer("🚫 You have already won in another game today! Come back tomorrow 😊")
                 return
             attempts += 1
             basketball_attempts[user_id] = attempts
@@ -410,20 +446,20 @@ async def detect_mini_game(client, message: Message):
             basketball_success[user_id] = success
 
             goals_this_shot = "2 goals" if value == 5 else "1 goal" if value == 4 else "missed"
-            await message.reply(f"@{user} → Shot {attempts}/2: {goals_this_shot}")
+            await message.answer(f"@{user} → Shot {attempts}/2: {goals_this_shot}")
 
 
             if made_this_shot:
-                await message.reply("SWISH! Made the shot!", quote=True)
+                await message.answer("SWISH! Made the shot!")
             else:
-                await message.reply("Airball… missed!", quote=True)
+                await message.answer("Airball… missed!")
 
             if attempts == 1 and made_this_shot:
                 daily_winners.add(user_id)
-                await message.reply(
+                await message.answer(
                     f"@{user} WINS ₱10 on the first shot! 🎉\n"
                     "You still have **1 more attempt**, shoot again!",
-                    quote=True
+                    
                 )
                 return 
 
@@ -431,69 +467,68 @@ async def detect_mini_game(client, message: Message):
                 if success == 2:
                     # Won both shots
                     daily_winners.add(user_id)
-                    await message.reply(
+                    await message.answer(
                         f"**🤴 BASKETBALL LEGEND!!! 🤴**\n\n"
                         f"@{user} scored on **BOTH shots!**\n"
                         f"**You win ₱10 + Basketball Star title**\n\n"
                         "Please send a screenshot of your P200 deposit made today along with your Player ID to claim your prize.\n\n"
-                        "**NOTE:** The deposit must be made before playing the game. Deposits made after gameplay will not be accepted.",
-                        quote=True
+                        "<b>NOTE</b> The deposit must be made before playing the game. Deposits made after gameplay will not be accepted.",
+                        
                     )
 
                 elif success == 1:
                     # Won exactly one shot
                     daily_winners.add(user_id)
-                    await message.reply(
+                    await message.answer(
                         f"Good game! @{user} made **1 out of 2 shots**\n"
                         f"**You win ₱10**\n\n"
                         "Please send a screenshot of your P200 deposit made today along with your Player ID to claim your prize.\n\n"
-                        "**NOTE:** The deposit must be made before playing the game. Deposits made after gameplay will not be accepted.",
-                        quote=True
+                        "<b>NOTE</b> The deposit must be made before playing the game. Deposits made after gameplay will not be accepted.",
+                        
                     )
 
                 else:
                     # Missed both shots
-                    await message.reply(
+                    await message.answer(
                         f"Tough luck @{user}… **0/2 shots made**\n"
                         "No prize this round — better luck next time!",
-                        quote=True
+                        
                     )
 
         elif emoji.startswith("⚽"): # Football
             if is_forwarded(message):
-                await message.reply("🚫 Forwarding an emoji is not allowed!", quote=True)
+                await message.answer("🚫 Forwarding an emoji is not allowed!")
                 return       
             
             attempts = football_attempts.get(user_id, 0)
             if attempts >= 2:
-                await message.reply("You have no more football chances this round! ❌", quote=True)
+                await message.answer("You have no more football chances this round! ❌")
                 return
             if user_id in daily_winners:
-                await message.reply("🚫 You have already won in another game today! Come back tomorrow 😊", quote=True)
+                await message.answer("🚫 You have already won in another game today! Come back tomorrow 😊")
                 return
 
             current_attempt = attempts + 1
             football_attempts[user_id] = current_attempt
 
-            await message.reply(f"@{user} kicked - chance ({attempts + 1}/2)")
+            await message.answer(f"@{user} kicked - chance ({attempts + 1}/2)")
             if value in (4, 5, 6):
                 daily_winners.add(user_id)
-                await message.reply("⚽GOAL⚽\n\n"
+                await message.answer("⚽GOAL⚽\n\n"
                                     f"@{user} WINS 10 pesos!! 🎉\n\n"
                                     f"Please send a screenshot of your P200 deposit made today along with your Player ID to claim your prize.\n\n"
-                                     "**NOTE:** The deposit must be made before playing the game. Deposits made after gameplay will not be accepted.")
+                                     "<b>NOTE</b> The deposit must be made before playing the game. Deposits made after gameplay will not be accepted.")
                 if current_attempt == 1:
-                    await message.reply("You won on your first try — your second chance has been removed!", quote=True)
+                    await message.answer("You won on your first try — your second chance has been removed!")
                     football_attempts[user_id] = 2
             else:
-                await message.reply("Better Luck Next time!", quote=True) 
+                await message.answer("Better Luck Next time!") 
 
-@app.on_message(filters.new_chat_members, group=10)
-async def greet_new_member(client, message):
-    # Cache fix
-    async for _ in client.get_chat_members(message.chat.id, limit=1):
-        break
-
+@dp.message()
+async def greet_new_member(message: Message):
+    if not message.new_chat_members:
+        return
+    
     for user in message.new_chat_members:
         if user.is_bot:
             continue
@@ -502,18 +537,18 @@ async def greet_new_member(client, message):
         user_id = user.id
 
         if looks_like_impersonation(user):
-            await client.ban_chat_member(chat_id, user_id)
-            await client.unban_chat_member(chat_id, user_id)
+            await bot.ban_chat_member(chat_id, user_id)
+            await bot.unban_chat_member(chat_id, user_id)
             return
 
         # Restrict user
-        await client.restrict_chat_member(
+        await bot.restrict_chat_member(
             chat_id, user_id,
             ChatPermissions(can_send_messages=False)
         )
  
         keyboard = [[InlineKeyboardButton("✅ Accept Rules", callback_data=f"accept_{user_id}")]]
-        await client.send_message(
+        await bot.send_message(
             chat_id,
             f"""
         👋 Welcome @{user.username}!
@@ -551,27 +586,43 @@ Walang spam, pang-aabuso, o istorbo sa grupo.
         )
 
 
-@app.on_callback_query()
-async def handle_callback(client, callback_query):
+@dp.callback_query()
+async def handle_callback(callback_query: CallbackQuery):
     data = callback_query.data
     user_id = callback_query.from_user.id
 
-    if not data.endswith(str(user_id)):
+    # Ensure only the intended user can click
+    if not data or not data.endswith(str(user_id)):
         await callback_query.answer("❌ This is not for you!", show_alert=True)
         return
 
     chat_id = callback_query.message.chat.id
-    chat = await client.get_chat(chat_id)
+
+    # Get current group permissions
+    chat = await bot.get_chat(chat_id)
     group_perms = chat.permissions
 
-    await client.restrict_chat_member(chat_id, user_id, permissions=group_perms)
+    # Restore permissions to group defaults
+    await bot.restrict_chat_member(
+        chat_id,
+        user_id,
+        permissions=group_perms
+    )
 
+    # Edit the rules message
     await callback_query.message.edit_text(
         f"✅ @{callback_query.from_user.username} accepted the rules. Welcome!"
     )
 
     accepted_users.add(user_id)
-    await callback_query.answer("You are now allowed to chat!", show_alert=True)
 
+    await callback_query.answer(
+        "You are now allowed to chat!",
+        show_alert=True
+    )
+    
+async def main():
+    await dp.start_polling(bot)
 
-app.run()
+if __name__ == "__main__":
+    asyncio.run(main())
