@@ -251,282 +251,282 @@ async def block_private_messages(message: Message):
 
 @dp.message()
 async def detect_mini_game(message: Message):
-    if not message.dice:
+    if message.text and message.text.startswith("/"):
+    return
+
+    if message.content_type != "dice":
         return
     
-    if message.dice:    
-        if await is_admin(message):
-            return
 
-        emoji = message.dice.emoji
-        value = message.dice.value          
-        user = message.from_user.username or message.from_user.first_name
-        user_id = message.from_user.id
-        reset_daily_winners()
+    emoji = message.dice.emoji
+    value = message.dice.value          
+    user = message.from_user.username or message.from_user.first_name
+    user_id = message.from_user.id
+    reset_daily_winners()
 
-        if emoji.startswith("🎲") and not dice_active:
-            active_games = get_active_game_emojis()
-            if active_games:
-                await message.answer(
-                    "🚫 **This game is not active.**\n\n"
-                    "🎮 Active games you can play:\n"
-                    + "\n".join(f"• {g}" for g in active_games)
-                    + "\n\n👉 Send the emoji of the game you want to play."
-                )
-            else:
-                await message.answer("🎲 Dice event is currently **not active**. ❌")
-            return
-
-        if emoji.startswith("🎯") and not darts_active:
-            active_games = get_active_game_emojis()
-            if active_games:
-                await message.answer(
-                    "🚫 **This game is not active.**\n\n"
-                    "🎮 Active games you can play:\n"
-                    + "\n".join(f"• {g}" for g in active_games)
-                    + "\n\n👉 Send the emoji of the game you want to play."
-                )
-            else:
-                await message.answer("🎯 Darts event is currently **not active**. ❌")
-            return
-
-        if emoji.startswith("🎰") and not slots_active:
-            active_games = get_active_game_emojis()
-            if active_games:
-                await message.answer(
-                    "🚫 **This game is not active.**\n\n"
-                    "🎮 Active games you can play:\n"
-                    + "\n".join(f"• {g}" for g in active_games)
-                    + "\n\n👉 Send the emoji of the game you want to play."
-                )
-            else:
-                await message.answer("🎰 Slot Machine event is currently **not active**. ❌")
-            return
-
-        if emoji.startswith("🏀") and not basketball_active:
-            active_games = get_active_game_emojis()
-            if active_games:
-                await message.answer(
-                    "🚫 **This game is not active.**\n\n"
-                    "🎮 Active games you can play:\n"
-                    + "\n".join(f"• {g}" for g in active_games)
-                    + "\n\n👉 Send the emoji of the game you want to play."
-                )
-            else:
-                await message.answer("🏀 Basketball event is currently **not active**. ❌")
-            return
-
-        if emoji.startswith("⚽") and not football_active:
-            active_games = get_active_game_emojis()
-            if active_games:
-                await message.answer(
-                    "🚫 **This game is not active.**\n\n"
-                    "🎮 Active games you can play:\n"
-                    + "\n".join(f"• {g}" for g in active_games)
-                    + "\n\n👉 Send the emoji of the game you want to play."
-                )
-            else:
-                await message.answer("⚽ Football event is currently **not active**. ❌")
-            return
-
-        if emoji.startswith("🎲"):   # Dice
-            if is_forwarded(message):
-                await message.answer("🚫 Forwarding an emoji is not allowed!")
-                return
-                
-            attempts = dice_attempts.get(user_id, 0)
-            if attempts >= 2:
-                await message.answer("You have no more dice chances this round! ❌")
-                return
-                
-            if user_id in daily_winners:
-                await message.answer("🚫 You have already won in another game today! Come back tomorrow 😊")
-                return
-
-            current_attempt = attempts + 1
-            dice_attempts[user_id] = current_attempt
-
-            await message.answer(f"@{user} rolled {value} 🎲  (chance {attempts + 1}/2)")
-            if value == 6:
-                daily_winners.add(user_id)
-                await message.answer(f"@{user} WINS 20 pesos!! (perfect 6) 🎉\n\n"
-                                    f"Please send a screenshot of your P200 deposit made today along with your Player ID to claim your prize.\n\n"
-                                     "<b>NOTE</b> The deposit must be made before playing the game. Deposits made after gameplay will not be accepted.")
-                if current_attempt == 1:
-                    await message.answer("You won on your first try — your second chance has been removed!")
-                
-                dice_attempts[user_id] = 2
-
-        elif emoji.startswith("🎯"): # Darts
-            if is_forwarded(message):
-                await message.answer("🚫 Forwarding an emoji is not allowed!")
-                return
-                
-            attempts = darts_attempts.get(user_id, 0)
-            if attempts >= 2:
-                await message.answer("You have no chances left for this round!")
-                return
-            
-            if user_id in daily_winners:
-                await message.answer("🚫 You have already won in another game today! Come back tomorrow 😊")
-                return
-            attempts += 1
-            darts_attempts[user_id] = attempts
-
-            score = message.dice.value
-
-            if score == 6:  
-                prize = "₱20"
-                msg = (f"**Congrats!!** @{user} wins {prize}** Perfect shot!\n\nPlease send a screenshot of your ₱200 deposit made today along with your Player ID to claim your prize\n\n"
-                       "<b>NOTE</b> The deposit must be made before playing the game. Deposits made after gameplay will not be accepted.")
-                # If won on first try → block second attempt
-                daily_winners.add(user_id)
-                if attempts == 1:
-                    darts_attempts[user_id] = 2
-                    msg += "\nYou won on your FIRST throw — second chance removed!"
-
-            elif score > 1:  # Hit the board
-                prize = "₱5"
-                msg = (f"Good hit! @{user} wins {prize}**\n\nPlease send a screenshot of your ₱200 deposit made today along with your Player ID to claim your prize\n\n"
-                       "<b>NOTE</b> The deposit must be made before playing the game. Deposits made after gameplay will not be accepted.")
-                daily_winners.add(user_id)
-                if attempts == 1:
-                    darts_attempts[user_id] = 2
-                    msg += "\nYou won on your FIRST throw — second chance removed!"
-
-            else:  # score == 0 → missed
-                msg = f"Ouch! {user} missed the board completely!\nBetter luck on your next throw!"
-
-            await message.answer(msg)
-
-        elif emoji.startswith("🎰"): # Slot Machine
-            if is_forwarded(message):
-                await message.answer("🚫 Forwarding an emoji is not allowed!")
-                return
-                
-            if user_id in slots_attempts:
-                await message.answer("You already used your 1 slot spin this round!")
-                return
-            
-            if user_id in daily_winners:
-                await message.answer("🚫 You have already won in another game today! Come back tomorrow 😊")
-                return
-            slots_attempts.add(user_id)
-            
-            s1, s2, s3 = decode_slot(value)
-
-            status, payout = calculate_slot_payout(s1, s2, s3) 
-
-            msg = (
-                f"🎰 **Slot Machine** 🎰\n"
-                f"**{status}**\n"
-                f"Reward: ₱{payout}\n\n"
-                "Please send a screenshot of your P500 deposit made today along with your Player ID to claim your prize\n\n"
-                "<b>NOTE</b> The deposit must be made before playing the game. Deposits made after gameplay will not be accepted."
+    if emoji.startswith("🎲") and not dice_active:
+        active_games = get_active_game_emojis()
+        if active_games:
+            await message.answer(
+                "🚫 **This game is not active.**\n\n"
+                "🎮 Active games you can play:\n"
+                + "\n".join(f"• {g}" for g in active_games)
+                + "\n\n👉 Send the emoji of the game you want to play."
             )
-            await message.answer(msg)
-            daily_winners.add(user_id)
+        else:
+            await message.answer("🎲 Dice event is currently **not active**. ❌")
+        return
 
-        elif emoji.startswith("🏀"): # Basketball
-            if is_forwarded(message):
-                await message.answer("🚫 Forwarding an emoji is not allowed!")
-                return
-            attempts = basketball_attempts.get(user_id, 0)
-            success = basketball_success.get(user_id, 0)
-            value = message.dice.value
+    if emoji.startswith("🎯") and not darts_active:
+        active_games = get_active_game_emojis()
+        if active_games:
+            await message.answer(
+                "🚫 **This game is not active.**\n\n"
+                "🎮 Active games you can play:\n"
+                + "\n".join(f"• {g}" for g in active_games)
+                + "\n\n👉 Send the emoji of the game you want to play."
+            )
+        else:
+            await message.answer("🎯 Darts event is currently **not active**. ❌")
+        return
 
-            if attempts >= 2:
-                await message.answer("You already used your 2 basketball chances this round! ❌")
-                return
+    if emoji.startswith("🎰") and not slots_active:
+        active_games = get_active_game_emojis()
+        if active_games:
+            await message.answer(
+                "🚫 **This game is not active.**\n\n"
+                "🎮 Active games you can play:\n"
+                + "\n".join(f"• {g}" for g in active_games)
+                + "\n\n👉 Send the emoji of the game you want to play."
+            )
+        else:
+            await message.answer("🎰 Slot Machine event is currently **not active**. ❌")
+        return
+
+    if emoji.startswith("🏀") and not basketball_active:
+        active_games = get_active_game_emojis()
+        if active_games:
+            await message.answer(
+                "🚫 **This game is not active.**\n\n"
+                "🎮 Active games you can play:\n"
+                + "\n".join(f"• {g}" for g in active_games)
+                + "\n\n👉 Send the emoji of the game you want to play."
+            )
+        else:
+            await message.answer("🏀 Basketball event is currently **not active**. ❌")
+        return
+
+    if emoji.startswith("⚽") and not football_active:
+        active_games = get_active_game_emojis()
+        if active_games:
+            await message.answer(
+                "🚫 **This game is not active.**\n\n"
+                "🎮 Active games you can play:\n"
+                + "\n".join(f"• {g}" for g in active_games)
+                + "\n\n👉 Send the emoji of the game you want to play."
+            )
+        else:
+            await message.answer("⚽ Football event is currently **not active**. ❌")
+        return
+
+    if emoji.startswith("🎲"):   # Dice
+        if is_forwarded(message):
+            await message.answer("🚫 Forwarding an emoji is not allowed!")
+            return
             
-            if user_id in daily_winners:
-                await message.answer("🚫 You have already won in another game today! Come back tomorrow 😊")
-                return
-            attempts += 1
-            basketball_attempts[user_id] = attempts
+        attempts = dice_attempts.get(user_id, 0)
+        if attempts >= 2:
+            await message.answer("You have no more dice chances this round! ❌")
+            return
+            
+        if user_id in daily_winners:
+            await message.answer("🚫 You have already won in another game today! Come back tomorrow 😊")
+            return
 
-            made_this_shot = 1 if value >= 4 else 0
-            success += made_this_shot
-            basketball_success[user_id] = success
+        current_attempt = attempts + 1
+        dice_attempts[user_id] = current_attempt
 
-            goals_this_shot = "2 goals" if value == 5 else "1 goal" if value == 4 else "missed"
-            await message.answer(f"@{user} → Shot {attempts}/2: {goals_this_shot}")
+        await message.answer(f"@{user} rolled {value} 🎲  (chance {attempts + 1}/2)")
+        if value == 6:
+            daily_winners.add(user_id)
+            await message.answer(f"@{user} WINS 20 pesos!! (perfect 6) 🎉\n\n"
+                                f"Please send a screenshot of your P200 deposit made today along with your Player ID to claim your prize.\n\n"
+                                 "<b>NOTE</b> The deposit must be made before playing the game. Deposits made after gameplay will not be accepted.")
+            if current_attempt == 1:
+                await message.answer("You won on your first try — your second chance has been removed!")
+            
+            dice_attempts[user_id] = 2
+
+    elif emoji.startswith("🎯"): # Darts
+        if is_forwarded(message):
+            await message.answer("🚫 Forwarding an emoji is not allowed!")
+            return
+            
+        attempts = darts_attempts.get(user_id, 0)
+        if attempts >= 2:
+            await message.answer("You have no chances left for this round!")
+            return
+        
+        if user_id in daily_winners:
+            await message.answer("🚫 You have already won in another game today! Come back tomorrow 😊")
+            return
+        attempts += 1
+        darts_attempts[user_id] = attempts
+
+        score = message.dice.value
+
+        if score == 6:  
+            prize = "₱20"
+            msg = (f"**Congrats!!** @{user} wins {prize}** Perfect shot!\n\nPlease send a screenshot of your ₱200 deposit made today along with your Player ID to claim your prize\n\n"
+                   "<b>NOTE</b> The deposit must be made before playing the game. Deposits made after gameplay will not be accepted.")
+            # If won on first try → block second attempt
+            daily_winners.add(user_id)
+            if attempts == 1:
+                darts_attempts[user_id] = 2
+                msg += "\nYou won on your FIRST throw — second chance removed!"
+
+        elif score > 1:  # Hit the board
+            prize = "₱5"
+            msg = (f"Good hit! @{user} wins {prize}**\n\nPlease send a screenshot of your ₱200 deposit made today along with your Player ID to claim your prize\n\n"
+                   "<b>NOTE</b> The deposit must be made before playing the game. Deposits made after gameplay will not be accepted.")
+            daily_winners.add(user_id)
+            if attempts == 1:
+                darts_attempts[user_id] = 2
+                msg += "\nYou won on your FIRST throw — second chance removed!"
+
+        else:  # score == 0 → missed
+            msg = f"Ouch! {user} missed the board completely!\nBetter luck on your next throw!"
+
+        await message.answer(msg)
+
+    elif emoji.startswith("🎰"): # Slot Machine
+        if is_forwarded(message):
+            await message.answer("🚫 Forwarding an emoji is not allowed!")
+            return
+            
+        if user_id in slots_attempts:
+            await message.answer("You already used your 1 slot spin this round!")
+            return
+        
+        if user_id in daily_winners:
+            await message.answer("🚫 You have already won in another game today! Come back tomorrow 😊")
+            return
+        slots_attempts.add(user_id)
+        
+        s1, s2, s3 = decode_slot(value)
+
+        status, payout = calculate_slot_payout(s1, s2, s3) 
+
+        msg = (
+            f"🎰 **Slot Machine** 🎰\n"
+            f"**{status}**\n"
+            f"Reward: ₱{payout}\n\n"
+            "Please send a screenshot of your P500 deposit made today along with your Player ID to claim your prize\n\n"
+            "<b>NOTE</b> The deposit must be made before playing the game. Deposits made after gameplay will not be accepted."
+        )
+        await message.answer(msg)
+        daily_winners.add(user_id)
+
+    elif emoji.startswith("🏀"): # Basketball
+        if is_forwarded(message):
+            await message.answer("🚫 Forwarding an emoji is not allowed!")
+            return
+        attempts = basketball_attempts.get(user_id, 0)
+        success = basketball_success.get(user_id, 0)
+        value = message.dice.value
+
+        if attempts >= 2:
+            await message.answer("You already used your 2 basketball chances this round! ❌")
+            return
+        
+        if user_id in daily_winners:
+            await message.answer("🚫 You have already won in another game today! Come back tomorrow 😊")
+            return
+        attempts += 1
+        basketball_attempts[user_id] = attempts
+
+        made_this_shot = 1 if value >= 4 else 0
+        success += made_this_shot
+        basketball_success[user_id] = success
+
+        goals_this_shot = "2 goals" if value == 5 else "1 goal" if value == 4 else "missed"
+        await message.answer(f"@{user} → Shot {attempts}/2: {goals_this_shot}")
 
 
-            if made_this_shot:
-                await message.answer("SWISH! Made the shot!")
-            else:
-                await message.answer("Airball… missed!")
+        if made_this_shot:
+            await message.answer("SWISH! Made the shot!")
+        else:
+            await message.answer("Airball… missed!")
 
-            if attempts == 1 and made_this_shot:
+        if attempts == 1 and made_this_shot:
+            daily_winners.add(user_id)
+            await message.answer(
+                f"@{user} WINS ₱10 on the first shot! 🎉\n"
+                "You still have **1 more attempt**, shoot again!",
+                
+            )
+            return 
+
+        if attempts == 2:
+            if success == 2:
+                # Won both shots
                 daily_winners.add(user_id)
                 await message.answer(
-                    f"@{user} WINS ₱10 on the first shot! 🎉\n"
-                    "You still have **1 more attempt**, shoot again!",
+                    f"**🤴 BASKETBALL LEGEND!!! 🤴**\n\n"
+                    f"@{user} scored on **BOTH shots!**\n"
+                    f"**You win ₱10 + Basketball Star title**\n\n"
+                    "Please send a screenshot of your P200 deposit made today along with your Player ID to claim your prize.\n\n"
+                    "<b>NOTE</b> The deposit must be made before playing the game. Deposits made after gameplay will not be accepted.",
                     
                 )
-                return 
 
-            if attempts == 2:
-                if success == 2:
-                    # Won both shots
-                    daily_winners.add(user_id)
-                    await message.answer(
-                        f"**🤴 BASKETBALL LEGEND!!! 🤴**\n\n"
-                        f"@{user} scored on **BOTH shots!**\n"
-                        f"**You win ₱10 + Basketball Star title**\n\n"
-                        "Please send a screenshot of your P200 deposit made today along with your Player ID to claim your prize.\n\n"
-                        "<b>NOTE</b> The deposit must be made before playing the game. Deposits made after gameplay will not be accepted.",
-                        
-                    )
-
-                elif success == 1:
-                    # Won exactly one shot
-                    daily_winners.add(user_id)
-                    await message.answer(
-                        f"Good game! @{user} made **1 out of 2 shots**\n"
-                        f"**You win ₱10**\n\n"
-                        "Please send a screenshot of your P200 deposit made today along with your Player ID to claim your prize.\n\n"
-                        "<b>NOTE</b> The deposit must be made before playing the game. Deposits made after gameplay will not be accepted.",
-                        
-                    )
-
-                else:
-                    # Missed both shots
-                    await message.answer(
-                        f"Tough luck @{user}… **0/2 shots made**\n"
-                        "No prize this round — better luck next time!",
-                        
-                    )
-
-        elif emoji.startswith("⚽"): # Football
-            if is_forwarded(message):
-                await message.answer("🚫 Forwarding an emoji is not allowed!")
-                return       
-            
-            attempts = football_attempts.get(user_id, 0)
-            if attempts >= 2:
-                await message.answer("You have no more football chances this round! ❌")
-                return
-            if user_id in daily_winners:
-                await message.answer("🚫 You have already won in another game today! Come back tomorrow 😊")
-                return
-
-            current_attempt = attempts + 1
-            football_attempts[user_id] = current_attempt
-
-            await message.answer(f"@{user} kicked - chance ({attempts + 1}/2)")
-            if value in (4, 5, 6):
+            elif success == 1:
+                # Won exactly one shot
                 daily_winners.add(user_id)
-                await message.answer("⚽GOAL⚽\n\n"
-                                    f"@{user} WINS 10 pesos!! 🎉\n\n"
-                                    f"Please send a screenshot of your P200 deposit made today along with your Player ID to claim your prize.\n\n"
-                                     "<b>NOTE</b> The deposit must be made before playing the game. Deposits made after gameplay will not be accepted.")
-                if current_attempt == 1:
-                    await message.answer("You won on your first try — your second chance has been removed!")
-                    football_attempts[user_id] = 2
+                await message.answer(
+                    f"Good game! @{user} made **1 out of 2 shots**\n"
+                    f"**You win ₱10**\n\n"
+                    "Please send a screenshot of your P200 deposit made today along with your Player ID to claim your prize.\n\n"
+                    "<b>NOTE</b> The deposit must be made before playing the game. Deposits made after gameplay will not be accepted.",
+                    
+                )
+
             else:
-                await message.answer("Better Luck Next time!") 
+                # Missed both shots
+                await message.answer(
+                    f"Tough luck @{user}… **0/2 shots made**\n"
+                    "No prize this round — better luck next time!",
+                    
+                )
+
+    elif emoji.startswith("⚽"): # Football
+        if is_forwarded(message):
+            await message.answer("🚫 Forwarding an emoji is not allowed!")
+            return       
+        
+        attempts = football_attempts.get(user_id, 0)
+        if attempts >= 2:
+            await message.answer("You have no more football chances this round! ❌")
+            return
+        if user_id in daily_winners:
+            await message.answer("🚫 You have already won in another game today! Come back tomorrow 😊")
+            return
+
+        current_attempt = attempts + 1
+        football_attempts[user_id] = current_attempt
+
+        await message.answer(f"@{user} kicked - chance ({attempts + 1}/2)")
+        if value in (4, 5, 6):
+            daily_winners.add(user_id)
+            await message.answer("⚽GOAL⚽\n\n"
+                                f"@{user} WINS 10 pesos!! 🎉\n\n"
+                                f"Please send a screenshot of your P200 deposit made today along with your Player ID to claim your prize.\n\n"
+                                 "<b>NOTE</b> The deposit must be made before playing the game. Deposits made after gameplay will not be accepted.")
+            if current_attempt == 1:
+                await message.answer("You won on your first try — your second chance has been removed!")
+                football_attempts[user_id] = 2
+        else:
+            await message.answer("Better Luck Next time!") 
 
 @dp.message()
 async def greet_new_member(message: Message):
