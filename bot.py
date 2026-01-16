@@ -135,7 +135,7 @@ async def is_admin(client, message):
 
     return False
 
-@app.on_message(filters.command(["startdice", "stopdice", "startdarts", "stopdarts", "startslots", "stopslots", "startbasket", "stopbasket", "startfoot", "stopfoot"]) & filters.group)
+@app.on_message(filters.command(["sdice", "stdice", "sdarts", "stdarts", "sslots", "stslots", "sbasket", "stbasket", "sfoot", "stfoot"]) & filters.group)
 async def game_control(client, message: Message):
     if not await is_admin(client, message):
         await message.delete()
@@ -146,48 +146,48 @@ async def game_control(client, message: Message):
 
     global dice_active, darts_active, slots_active, basketball_active, football_active, bowling_active
 
-    if cmd == "/startdice":
+    if cmd == "/sdice":
         dice_active = True
         await message.reply("Dice game is now ACTIVE! Send 🎲 emoji  to participate")
         await app.send_dice(chat_id=message.chat.id,emoji="🎲")
-    elif cmd == "/stopdice":
+    elif cmd == "/stdice":
         dice_active = False
         dice_attempts.clear()
         await message.reply("Dice game stopped.❌")
 
-    elif cmd == "/startdarts":
+    elif cmd == "/sdarts":
         darts_active = True
         await message.reply("Darts game is now ACTIVE! Send 🎯 to emoji participate")
         await app.send_dice(chat_id=message.chat.id,emoji="🎯")
-    elif cmd == "/stopdarts":
+    elif cmd == "/stdarts":
         darts_active = False
         darts_attempts.clear()
         darts_won_first.clear()
         await message.reply("Darts game stopped.❌")
 
-    elif cmd == "/startslots":
+    elif cmd == "/sslots":
         slots_active = True
         await message.reply("Slot Machine is now ACTIVE! Send 🎰 to emoji participate")
         await app.send_dice(chat_id=message.chat.id,emoji="🎰")
-    elif cmd == "/stopslots":
+    elif cmd == "/stslots":
         slots_active = False
         slots_attempts.clear()
         await message.reply("Slot Machine stopped.❌")
 
-    elif cmd == "/startbasket":
+    elif cmd == "/sbasket":
         basketball_active = True
         await message.reply("Basketball game is now ACTIVE! Send 🏀 emoji to participate")
         await app.send_dice(chat_id=message.chat.id,emoji="🏀")
-    elif cmd == "/stopbasket":
+    elif cmd == "/stbasket":
         basketball_active = False
         basketball_attempts.clear()
         basketball_success.clear()
         await message.reply("Basketball game stopped.❌")
 
-    elif cmd == "/startfoot":
+    elif cmd == "/sfoot":
         football_active = True
         await message.reply("Football game is now ACTIVE! Kick ⚽")
-    elif cmd == "/stopfoot":
+    elif cmd == "/stfoot":
         football_active = False
         football_attempts.clear()
         await message.reply("Football game stopped.❌")
