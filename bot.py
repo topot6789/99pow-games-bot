@@ -1,3 +1,4 @@
+from aiogram.client.default import DefaultBotProperties
 import asyncio
 import logging
 import os
@@ -13,7 +14,10 @@ from aiogram.types import (
 )
 
 
-bot = Bot(os.getenv("BOT_TOKEN"), parse_mode="HTML")
+bot = Bot(
+    token=os.getenv("BOT_TOKEN"),
+    default=DefaultBotProperties(parse_mode="HTML")
+)
 dp = Dispatcher()
 
 logging.basicConfig(level=logging.INFO)
