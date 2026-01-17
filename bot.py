@@ -190,7 +190,7 @@ async def block_private_messages(client, message):
     )
     return
     
-@app.on_message(filters.group,, group=1)
+@app.on_message(filters.group, group=1)
 async def detect_mini_game(client, message: Message):
     if message.sticker:
         await message.reply("This is a sticker! Please send the emoji if you wish to participate")
