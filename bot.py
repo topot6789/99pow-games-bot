@@ -14,6 +14,7 @@ BLOCKED_KEYWORDS = [
     "customerservice",
     "support",
     "cs team",
+    " cs "
     "agent",
     "admin",
     "official support",
