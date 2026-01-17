@@ -123,7 +123,7 @@ async def is_admin(client, message):
 
     return False
 
-@app.on_message(filters.command(["startdice", "stopdice", "startdarts", "stopdarts", "startslots", "stopslots", "startbasket", "stopbasket", "startfoot", "stopfoot"]) & filters.group)
+@app.on_message(filters.command(["startdice", "stopdice", "startdarts", "stopdarts", "startslots", "stopslots", "startbasket", "stopbasket", "startfoot", "stopfoot"]) & filters.group, , group=0)
 async def game_control(client, message: Message):
     if not await is_admin(client, message):
         await message.delete()
@@ -190,7 +190,7 @@ async def block_private_messages(client, message):
     )
     return
     
-@app.on_message(filters.group)
+@app.on_message(filters.group,, group=1)
 async def detect_mini_game(client, message: Message):
     if message.sticker:
         await message.reply("This is a sticker! Please send the emoji if you wish to participate")
@@ -475,7 +475,7 @@ async def detect_mini_game(client, message: Message):
             else:
                 await message.reply("Better Luck Next time!", quote=True)
 
-@app.on_message(filters.new_chat_members, group=0)
+@app.on_message(filters.new_chat_members, group=10)
 async def greet_new_member(client, message):
         async for _ in client.get_chat_members(message.chat.id, limit=1):
             break
