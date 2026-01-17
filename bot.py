@@ -235,6 +235,7 @@ async def game_control(message: Message):
         football_active = False
         football_attempts.clear()
         await message.answer("Football game stopped.❌")
+    print("IDK")
     return
 
 @dp.message()
