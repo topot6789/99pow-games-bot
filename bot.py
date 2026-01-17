@@ -484,10 +484,10 @@ async def greet_new_member(client, message):
             if user.is_bot:
                 if user.id in WHITELISTED_BOT_USERNAMES:
                     continue  
-            else:
-                await client.ban_chat_member(message.chat.id, user.id)
-                await client.unban_chat_member(message.chat.id, user.id)
-                continue
+                else:
+                    await client.ban_chat_member(message.chat.id, user.id)
+                    await client.unban_chat_member(message.chat.id, user.id)
+                    continue
 
 
             chat_id = message.chat.id
