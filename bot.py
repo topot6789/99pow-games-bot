@@ -255,9 +255,11 @@ async def game_control(message: Message):
 @game_router.message()
 async def detect_mini_game(message: Message):
     if message.text and message.text.startswith("/"):
+        print("a text")
         return
 
     if message.content_type != "dice":
+        print("Not Dice")
         return
 
 
