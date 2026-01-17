@@ -123,7 +123,7 @@ async def is_admin(client, message):
 
     return False
 
-@app.on_message(filters.command(["startdice", "stopdice", "startdarts", "stopdarts", "startslots", "stopslots", "startbasket", "stopbasket", "startfoot", "stopfoot"]) & filters.group, , group=0)
+@app.on_message(filters.command(["startdice", "stopdice", "startdarts", "stopdarts", "startslots", "stopslots", "startbasket", "stopbasket", "startfoot", "stopfoot"]) & filters.group,group=0)
 async def game_control(client, message: Message):
     if not await is_admin(client, message):
         await message.delete()
