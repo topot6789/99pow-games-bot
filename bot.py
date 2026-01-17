@@ -164,9 +164,9 @@ async def game_control(message: Message):
     }
 
     # === filters.command([...]) ===
-    if not is_command(message, COMMANDS):
-        print("BYE BYE!")
-        return
+    # if not is_command(message, COMMANDS):
+    #     print("BYE BYE!")
+    #     return
 
     if not await is_admin(message):
         try:
