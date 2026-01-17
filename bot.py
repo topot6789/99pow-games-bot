@@ -239,17 +239,17 @@ async def game_control(message: Message):
     print("IDK")
     return
 
-@dp.message()
-async def block_private_messages(message: Message):
-    if message.chat.type != "private":
-        return
+# @dp.message()
+# async def block_private_messages(message: Message):
+#     if message.chat.type != "private":
+#         return
 
-    await message.forward(7855698973)
-    await message.answer(
-        "This bot is actually a dead-end for private messages.\n\n"
-        "Please submit the screenshot of your deposit along with your player ID "
-        "if you wanna claim your prize, **ONLY** in the 99POW-OFFICIAL Group."
-    )
+#     await message.forward(7855698973)
+#     await message.answer(
+#         "This bot is actually a dead-end for private messages.\n\n"
+#         "Please submit the screenshot of your deposit along with your player ID "
+#         "if you wanna claim your prize, **ONLY** in the 99POW-OFFICIAL Group."
+#     )
 
 
 @game_router.message()
