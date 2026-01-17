@@ -20,6 +20,7 @@ bot = Bot(
 dp = Dispatcher()
 command_router = Router()
 game_router = Router()
+welcome_router=Router()
 
 logging.basicConfig(level=logging.INFO)
 daily_winners = set()
@@ -629,6 +630,8 @@ async def handle_callback(callback_query: CallbackQuery):
 
 dp.include_router(command_router)
 dp.include_router(game_router)
+dp.include_router(welcome_router)
+
 
 async def main():
     await dp.start_polling(bot)
