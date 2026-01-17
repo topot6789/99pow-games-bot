@@ -593,7 +593,7 @@ Walang spam, pang-aabuso, o istorbo sa grupo.
         )
 
 
-@dp.callback_query()
+@welcome_router.callback_query()
 async def handle_callback(callback_query: CallbackQuery):
     data = callback_query.data
     user_id = callback_query.from_user.id
