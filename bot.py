@@ -476,9 +476,6 @@ async def detect_mini_game(client, message: Message):
 
 @app.on_message(filters.new_chat_members, group=0)
 async def greet_new_member(client, message):
-
-    try:
-        # Cache fix
         async for _ in client.get_chat_members(message.chat.id, limit=1):
             break
 
