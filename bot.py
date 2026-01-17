@@ -12,13 +12,14 @@ from aiogram.types import (
     InlineKeyboardButton,
     ChatPermissions,
 )
-
-
+from aiogram import Router
 bot = Bot(
     token=os.getenv("BOT_TOKEN"),
     default=DefaultBotProperties(parse_mode="HTML")
 )
 dp = Dispatcher()
+command_router = Router()
+game_router = Router()
 
 logging.basicConfig(level=logging.INFO)
 daily_winners = set()
@@ -147,8 +148,7 @@ def is_command(message, names):
     cmd = cmd.split("@")[0].lower()  
     return cmd in names
 
-
-@dp.message()
+@command_router.message()
 async def game_control(message: Message):
     # === filters.group ===
     if message.chat.type not in ("group", "supergroup"):
@@ -250,7 +250,7 @@ async def block_private_messages(message: Message):
     )
 
 
-@dp.message()
+@game_router.message()
 async def detect_mini_game(message: Message):
     if message.text and message.text.startswith("/"):
         return
@@ -625,7 +625,10 @@ async def handle_callback(callback_query: CallbackQuery):
         "You are now allowed to chat!",
         show_alert=True
     )
-    
+
+dp.include_router(command_router)
+dp.include_router(game_router)
+
 async def main():
     await dp.start_polling(bot)
 
