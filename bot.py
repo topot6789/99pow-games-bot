@@ -531,7 +531,7 @@ async def detect_mini_game(message: Message):
         else:
             await message.answer("Better Luck Next time!") 
 
-@dp.message()
+@welcome_router.message()
 async def greet_new_member(message: Message):
     if not message.new_chat_members:
         return
