@@ -561,10 +561,6 @@ async def handle_callback(client, callback_query):
         await callback_query.answer("❌ This action is not for you!", show_alert=True)
         return
 
-    task = pending_accept_tasks.pop((chat_id, user_id), None)
-    if task:
-        task.cancel()
-
     chat_id = callback_query.message.chat.id
     chat = await client.get_chat(chat_id)
     group_perms = chat.permissions
