@@ -376,7 +376,7 @@ async def detect_mini_game(client, message: Message):
             msg = (
                 f"🎰 **Slot Machine** 🎰\n"
                 f"**{status}**\n"
-                f"Reward: ₱{payout} for user :{user.username} \n\n"
+                f"Reward: ₱{payout} for user : @{user} \n\n"
                 "Please send a screenshot of your P500 deposit made today along with your Player ID to claim your prize\n\n"
                 "**NOTE:** The deposit must be made before playing the game. Deposits made after gameplay will not be accepted."
             )
