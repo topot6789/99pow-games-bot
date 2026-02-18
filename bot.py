@@ -376,7 +376,7 @@ async def detect_mini_game(client, message: Message):
             msg = (
                 f"🎰 **Slot Machine** 🎰\n"
                 f"**{status}**\n"
-                f"Reward: ₱{payout}\n\n"
+                f"Reward: ₱{payout} for user :{user.username} \n\n"
                 "Please send a screenshot of your P500 deposit made today along with your Player ID to claim your prize\n\n"
                 "**NOTE:** The deposit must be made before playing the game. Deposits made after gameplay will not be accepted."
             )
@@ -395,7 +395,7 @@ async def detect_mini_game(client, message: Message):
                 await message.reply("You already used your 2 basketball chances this round! ❌", quote=True)
                 return
             
-            if user_id in daily_winners:
+            if user_id in daily_winners and basketball_attempts.get(user_id, 0) == 0:
                 await message.reply("🚫 You have already won in another game today! Come back tomorrow 😊", quote=True)
                 return
             attempts += 1
