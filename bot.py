@@ -374,7 +374,7 @@ async def detect_mini_game(client, message: Message):
             status, payout = calculate_slot_payout(s1, s2, s3) 
 
             msg = (
-                f"🎰 **Slot Machine** 🎰\n"
+                f"🎰 **Jackpot Royale** 🎰\n"
                 f"**{status}**\n"
                 f"Reward: ₱{payout} for user : @{user} \n\n"
                 "Please send a screenshot of your P500 deposit made today along with your Player ID to claim your prize\n\n"
