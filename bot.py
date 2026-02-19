@@ -303,10 +303,10 @@ async def detect_mini_game(client, message: Message):
             current_attempt = attempts + 1
             dice_attempts[user_id] = current_attempt
 
-            await message.reply(f"@{user} rolled {value} 🎲  (chance {attempts + 1}/2)")
+            await message.reply(f"{user_mention} rolled {value} 🎲  (chance {attempts + 1}/2)")
             if value == 6:
                 daily_winners.add(user_id)
-                await message.reply(f"@{user} WINS 20 pesos!! (perfect 6) 🎉\n\n"
+                await message.reply(f"{user_mention} WINS 20 pesos!! (perfect 6) 🎉\n\n"
                                     f"Please send a screenshot of your P200 deposit made today along with your Player ID to claim your prize.\n\n"
                                      "**NOTE:** The deposit must be made before playing the game. Deposits made after gameplay will not be accepted.")
                 if current_attempt == 1:
@@ -334,7 +334,7 @@ async def detect_mini_game(client, message: Message):
 
             if score == 6:  
                 prize = "₱20"
-                msg = (f"**Congrats!!** @{user} wins {prize}** Perfect shot!\n\nPlease send a screenshot of your ₱200 deposit made today along with your Player ID to claim your prize\n\n"
+                msg = (f"**Congrats!!** {user_mention} wins {prize}** Perfect shot!\n\nPlease send a screenshot of your ₱200 deposit made today along with your Player ID to claim your prize\n\n"
                        "**NOTE:** The deposit must be made before playing the game. Deposits made after gameplay will not be accepted.")
                 # If won on first try → block second attempt
                 daily_winners.add(user_id)
@@ -344,7 +344,7 @@ async def detect_mini_game(client, message: Message):
 
             elif score > 1:  # Hit the board
                 prize = "₱5"
-                msg = (f"Good hit! @{user} wins {prize}**\n\nPlease send a screenshot of your ₱200 deposit made today along with your Player ID to claim your prize\n\n"
+                msg = (f"Good hit! {user_mention} wins {prize}**\n\nPlease send a screenshot of your ₱200 deposit made today along with your Player ID to claim your prize\n\n"
                        "**NOTE:** The deposit must be made before playing the game. Deposits made after gameplay will not be accepted.")
                 daily_winners.add(user_id)
                 if attempts == 1:
@@ -352,7 +352,7 @@ async def detect_mini_game(client, message: Message):
                     msg += "\nYou won on your FIRST throw — second chance removed!"
 
             else:  # score == 0 → missed
-                msg = f"Ouch! {user} missed the board completely!\nBetter luck on your next throw!"
+                msg = f"Ouch! {user_mention} missed the board completely!\nBetter luck on your next throw!"
 
             await message.reply(msg, quote=True)
 
@@ -407,7 +407,7 @@ async def detect_mini_game(client, message: Message):
             basketball_success[user_id] = success
 
             goals_this_shot = "2 goals" if value == 5 else "1 goal" if value == 4 else "missed"
-            await message.reply(f"@{user} → Shot {attempts}/2: {goals_this_shot}")
+            await message.reply(f"{user_mention} → Shot {attempts}/2: {goals_this_shot}")
 
 
             if made_this_shot:
@@ -418,7 +418,7 @@ async def detect_mini_game(client, message: Message):
             if attempts == 1 and made_this_shot:
                 daily_winners.add(user_id)
                 await message.reply(
-                    f"@{user} WINS ₱10 on the first shot! 🎉\n"
+                    f"{user_mention} WINS ₱10 on the first shot! 🎉\n"
                     "You still have **1 more attempt**, shoot again!",
                     quote=True
                 )
@@ -430,7 +430,7 @@ async def detect_mini_game(client, message: Message):
                     daily_winners.add(user_id)
                     await message.reply(
                         f"**🤴 BASKETBALL LEGEND!!! 🤴**\n\n"
-                        f"@{user} scored on **BOTH shots!**\n"
+                        f"{user_mention} scored on **BOTH shots!**\n"
                         f"**You win ₱10 + Basketball Star title**\n\n"
                         "Please send a screenshot of your P200 deposit made today along with your Player ID to claim your prize.\n\n"
                         "**NOTE:** The deposit must be made before playing the game. Deposits made after gameplay will not be accepted.",
@@ -441,7 +441,7 @@ async def detect_mini_game(client, message: Message):
                     # Won exactly one shot
                     daily_winners.add(user_id)
                     await message.reply(
-                        f"Good game! @{user} made **1 out of 2 shots**\n"
+                        f"Good game! {user_mention} made **1 out of 2 shots**\n"
                         f"**You win ₱10**\n\n"
                         "Please send a screenshot of your P200 deposit made today along with your Player ID to claim your prize.\n\n"
                         "**NOTE:** The deposit must be made before playing the game. Deposits made after gameplay will not be accepted.",
@@ -451,7 +451,7 @@ async def detect_mini_game(client, message: Message):
                 else:
                     # Missed both shots
                     await message.reply(
-                        f"Tough luck @{user}… **0/2 shots made**\n"
+                        f"Tough luck {user_mention}… **0/2 shots made**\n"
                         "No prize this round — better luck next time!",
                         quote=True
                     )
@@ -476,7 +476,7 @@ async def detect_mini_game(client, message: Message):
             if value in (4, 5, 6):
                 daily_winners.add(user_id)
                 await message.reply("⚽GOAL⚽\n\n"
-                                    f"@{user} WINS 10 pesos!! 🎉\n\n"
+                                    f"{user_mention} WINS 10 pesos!! 🎉\n\n"
                                     f"Please send a screenshot of your P200 deposit made today along with your Player ID to claim your prize.\n\n"
                                      "**NOTE:** The deposit must be made before playing the game. Deposits made after gameplay will not be accepted.")
                 if current_attempt == 1:
