@@ -213,6 +213,7 @@ async def detect_mini_game(client, message: Message):
         value = message.dice.value          
         user = message.from_user.username or message.from_user.first_name
         user_id = message.from_user.id
+        user_mention = f'<a href="tg://user?id={message.from_user.id}">{message.from_user.first_name}</a>'
         reset_daily_winners()
 
         if emoji.startswith("🎲") and not dice_active:
@@ -376,11 +377,11 @@ async def detect_mini_game(client, message: Message):
             msg = (
                 f"🎰 **Jackpot Royale** 🎰\n"
                 f"**{status}**\n"
-                f"Reward: ₱{payout} for user : @{user} \n\n"
+                f"Reward: ₱{payout} for user : {user_mention}  \n\n"
                 "Please send a screenshot of your P500 deposit made today along with your Player ID to claim your prize\n\n"
                 "**NOTE:** The deposit must be made before playing the game. Deposits made after gameplay will not be accepted."
             )
-            await message.reply(msg, quote=True)
+            await message.reply(msg, quote=True, parse_mode="HTML")
             daily_winners.add(user_id)
 
         elif emoji.startswith("🏀"): # Basketball
