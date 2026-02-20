@@ -381,7 +381,7 @@ async def detect_mini_game(client, message: Message):
                 "Please send a screenshot of your P500 deposit made today along with your Player ID to claim your prize\n\n"
                 "**NOTE:** The deposit must be made before playing the game. Deposits made after gameplay will not be accepted."
             )
-            await message.reply(msg, quote=True, parse_mode="HTML")
+            await message.reply(msg, quote=True)
             daily_winners.add(user_id)
 
         elif emoji.startswith("🏀"): # Basketball
